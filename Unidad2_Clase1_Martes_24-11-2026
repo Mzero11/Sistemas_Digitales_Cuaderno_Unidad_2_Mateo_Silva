@@ -1,0 +1,83 @@
+Procesamiento Digital de Señales (PDS) y Pantallas LCD en ESP32
+
+### 1. Procesamiento Digital de Señales (PDS)
+
+El PDS transforma variables físicas continuas en secuencias de números que un microcontrolador puede manipular.
+
+Ventajas principales:
+
+  * Inmunidad al ruido.
+  * Reprogramabilidad.
+  * Precisión estable.
+
+### Cadena de digitalización ADC
+Para pasar de una señal continua a una señal digital** se realiza el proceso de **Muestreo + Cuantificación**:
+
+1. Sensor: Convierte una magnitud física real en un voltaje continuo.
+2. Muestreo:Discretización en el tiempo; toma y guarda una muestra cada $T_s$ segundos ($f_s = 1 / T_s$).
+3. Cuantificación: Discretización en amplitud; redondea el voltaje al nivel discreto más cercano.
+4. Codificación: Representa cada nivel cuantificado como un número binario.
+
+---
+
+## 2. Teorema de Muestreo de Nyquist
+
+$$f_s > 2 \cdot f_{\max}$$
+
+La frecuencia de muestreo ($f_s$) debe superar el doble de la frecuencia máxima de la señal ($f_{\max}$).
+
+Aliasing: Si $f_s$ es insuficiente, una frecuencia alta se disfraza de una frecuencia baja falsa y el error no se puede revertir. *(Ejemplo: si $f_s = 10\text{ Hz} < 2 \times 9\text{ Hz}$, una señal real de $9\text{ Hz}$ se lee como una señal falsa de $1\text{ Hz}$).*
+Solución: Implementar un filtro anti-aliasing (RC) antes del ADC.
+
+---
+
+## 3. Operaciones Fundamentales del PDS
+
+Filtrado digital (FIR / IIR): Elimina ruido de la señal.
+  FIR: Promedia las últimas $N$ muestras.
+  IIR: Reutiliza también salidas anteriores.
+  Convolución discreta:** Cada salida es la suma de las muestras multiplicadas por los coeficientes del filtro.
+  Transformada Rápida de Fourier (FFT): Convierte una señal del dominio del tiempo al espectro de frecuencias.
+  ¿Para qué sirve? Detectar ruido o interferencias, medir la frecuencia dominante, analizar sonido o vibraciones y elegir $f_s$ según $f_{\max}$ (Nyquist).
+  En ESP32: Se utiliza la librería `arduinoFFT`.
+
+### Filtro de promedio móvil
+$$y[n] = \frac{1}{N} \cdot \sum_{k=0}^{N-1} x[n-k]$$
+
+* **Ventajas:** Muy fácil de programar y reduce el ruido de alta frecuencia.
+* **Desventaja:** Introduce retardo (a mayor $N$, más lenta es la respuesta).
+
+---
+
+## 4. El ADC del ESP32 en la Práctica
+
+* **Especificaciones:** 2 convertidores, 18 canales, resolución de 12 bits, rango nominal de $0$ a $3.3\text{ V}$.
+* **Resolución (12 bits):**
+  * $2^{12} = 4096$ niveles de amplitud (lecturas de `0` a `4095`).
+  * Escalón mínimo: $\frac{3.3\text{ V}}{4096} \approx 0.8\text{ mV}$ por escalón.
+  * Equivalencia: `0` $\rightarrow 0\text{ V}$ | `4095` $\rightarrow 3.3\text{ V}$.
+
+### Atenuación y rangos de entrada
+
+| Atenuación | Rango nominal de entrada |
+| :--- | :--- |
+| `0 dB` | ~0 – 1.1 V |
+| `2.5 dB` | ~0 – 1.5 V |
+| `6 dB` | ~0 – 2.2 V |
+| `11 dB` *(por defecto)* | ~0 – 3.3 V |
+
+> Precaución: Nunca apliques más de $3.3\text{ V}$ a un pin del ESP32.
+
+### Canales disponibles
+ ADC1 (8 canales — GPIO 32 a 39):** Funciona siempre, incluso con el Wi-Fi activo.
+ ADC2 (10 canales):** Se bloquea cuando el Wi-Fi está encendido (usar únicamente sin Wi-Fi).
+
+
+## 5. Manejo de Pantallas LCD en ESP32
+
+Una LCD (Liquid Crystal Display) es una pantalla alfanumérica de bajo consumo y bajo costo. El cristal líquido no emite luz propia, sino que bloquea o deja pasar la luz de una retroiluminación LED. Permite visualizar texto, números y métricas procesadas en tiempo real sin depender de una computadora.
+
+ Formatos comunes:
+   `16×2` $\rightarrow$ 32 caracteres (16 columnas $\times$ 2 filas).
+   `20×4` $\rightarrow$ 80 caracteres (20 columnas $\times$ 4 filas).
+
