@@ -1,83 +1,157 @@
-Procesamiento Digital de Señales (PDS) y Pantallas LCD en ESP32
+PROCESAMIENTO DIGITAL DE SEÑALES (PDS) Y PANTALLAS LCD EN ESP32
 
-### 1. Procesamiento Digital de Señales (PDS)
+--------------------------------------------------------------------------------
+
+1. PROCESAMIENTO DIGITAL DE SEÑALES (PDS)
 
 El PDS transforma variables físicas continuas en secuencias de números que un microcontrolador puede manipular.
 
 Ventajas principales:
+- Inmunidad al ruido.
+- Reprogramabilidad.
+- Precisión estable.
 
-  * Inmunidad al ruido.
-  * Reprogramabilidad.
-  * Precisión estable.
-
-### Cadena de digitalización ADC
-Para pasar de una señal continua a una señal digital** se realiza el proceso de **Muestreo + Cuantificación**:
+Cadena de digitalización ADC:
+Para pasar de una señal continua a una señal digital se realiza el proceso de Muestreo + Cuantificación:
 
 1. Sensor: Convierte una magnitud física real en un voltaje continuo.
-2. Muestreo:Discretización en el tiempo; toma y guarda una muestra cada $T_s$ segundos ($f_s = 1 / T_s$).
+2. Muestreo: Discretización en el tiempo; toma y guarda una muestra cada Ts segundos (fs = 1 / Ts).
 3. Cuantificación: Discretización en amplitud; redondea el voltaje al nivel discreto más cercano.
 4. Codificación: Representa cada nivel cuantificado como un número binario.
 
----
+--------------------------------------------------------------------------------
 
-## 2. Teorema de Muestreo de Nyquist
+2. TEOREMA DE MUESTREO DE NYQUIST
 
-$$f_s > 2 \cdot f_{\max}$$
+Fórmula: fs > 2 * fmax
 
-La frecuencia de muestreo ($f_s$) debe superar el doble de la frecuencia máxima de la señal ($f_{\max}$).
+La frecuencia de muestreo (fs) debe superar el doble de la frecuencia máxima de la señal (fmax).
 
-Aliasing: Si $f_s$ es insuficiente, una frecuencia alta se disfraza de una frecuencia baja falsa y el error no se puede revertir. *(Ejemplo: si $f_s = 10\text{ Hz} < 2 \times 9\text{ Hz}$, una señal real de $9\text{ Hz}$ se lee como una señal falsa de $1\text{ Hz}$).*
-Solución: Implementar un filtro anti-aliasing (RC) antes del ADC.
+- Aliasing: Si fs es insuficiente, una frecuencia alta se disfraza de una frecuencia baja falsa y el error no se puede revertir. (Ejemplo: si fs = 10 Hz < 2 x 9 Hz, una señal real de 9 Hz se lee como una señal falsa de 1 Hz).
+- Solución: Implementar un filtro anti-aliasing (RC) antes del ADC.
 
----
+--------------------------------------------------------------------------------
 
-## 3. Operaciones Fundamentales del PDS
+3. OPERACIONES FUNDAMENTALES DEL PDS
 
-Filtrado digital (FIR / IIR): Elimina ruido de la señal.
-  FIR: Promedia las últimas $N$ muestras.
-  IIR: Reutiliza también salidas anteriores.
-  Convolución discreta:** Cada salida es la suma de las muestras multiplicadas por los coeficientes del filtro.
-  Transformada Rápida de Fourier (FFT): Convierte una señal del dominio del tiempo al espectro de frecuencias.
-  ¿Para qué sirve? Detectar ruido o interferencias, medir la frecuencia dominante, analizar sonido o vibraciones y elegir $f_s$ según $f_{\max}$ (Nyquist).
-  En ESP32: Se utiliza la librería `arduinoFFT`.
+- Filtrado digital (FIR / IIR): Elimina ruido de la señal.
+  - FIR: Promedia las últimas N muestras.
+  - IIR: Reutiliza también salidas anteriores.
+- Convolución discreta: Cada salida es la suma de las muestras multiplicadas por los coeficientes del filtro.
+- Transformada Rápida de Fourier (FFT): Convierte una señal del dominio del tiempo al espectro de frecuencias.
+  - ¿Para qué sirve? Detectar ruido o interferencias, medir la frecuencia dominante, analizar sonido o vibraciones y elegir fs según fmax (Nyquist).
+  - En ESP32: Se utiliza la librería arduinoFFT.
 
-### Filtro de promedio móvil
-$$y[n] = \frac{1}{N} \cdot \sum_{k=0}^{N-1} x[n-k]$$
+Filtro de promedio móvil:
+Fórmula: y[n] = (1 / N) * sumatoria desde k=0 hasta N-1 de x[n-k]
 
-* **Ventajas:** Muy fácil de programar y reduce el ruido de alta frecuencia.
-* **Desventaja:** Introduce retardo (a mayor $N$, más lenta es la respuesta).
+- Ventajas: Muy fácil de programar y reduce el ruido de alta frecuencia.
+- Desventaja: Introduce retardo (a mayor N, más lenta es la respuesta).
 
----
+--------------------------------------------------------------------------------
 
-## 4. El ADC del ESP32 en la Práctica
+4. EL ADC DEL ESP32 EN LA PRÁCTICA
 
-* **Especificaciones:** 2 convertidores, 18 canales, resolución de 12 bits, rango nominal de $0$ a $3.3\text{ V}$.
-* **Resolución (12 bits):**
-  * $2^{12} = 4096$ niveles de amplitud (lecturas de `0` a `4095`).
-  * Escalón mínimo: $\frac{3.3\text{ V}}{4096} \approx 0.8\text{ mV}$ por escalón.
-  * Equivalencia: `0` $\rightarrow 0\text{ V}$ | `4095` $\rightarrow 3.3\text{ V}$.
+- Especificaciones: 2 convertidores, 18 canales, resolución de 12 bits, rango nominal de 0 a 3.3 V.
+- Resolución (12 bits):
+  - 2^12 = 4096 niveles de amplitud (lecturas de 0 a 4095).
+  - Escalón mínimo: 3.3 V / 4096 = 0.8 mV aproximadamente por escalón.
+  - Equivalencia: 0 equivale a 0 V | 4095 equivale a 3.3 V.
 
-### Atenuación y rangos de entrada
+Atenuación y rangos de entrada:
+- 0 dB: ~0 – 1.1 V
+- 2.5 dB: ~0 – 1.5 V
+- 6 dB: ~0 – 2.2 V
+- 11 dB (por defecto): ~0 – 3.3 V
 
-| Atenuación | Rango nominal de entrada |
-| :--- | :--- |
-| `0 dB` | ~0 – 1.1 V |
-| `2.5 dB` | ~0 – 1.5 V |
-| `6 dB` | ~0 – 2.2 V |
-| `11 dB` *(por defecto)* | ~0 – 3.3 V |
+Precaución: Nunca apliques más de 3.3 V a un pin del ESP32.
 
-> Precaución: Nunca apliques más de $3.3\text{ V}$ a un pin del ESP32.
+Canales disponibles:
+- ADC1 (8 canales — GPIO 32 a 39): Funciona siempre, incluso con el Wi-Fi activo.
+- ADC2 (10 canales): Se bloquea cuando el Wi-Fi está encendido (usar únicamente sin Wi-Fi).
 
-### Canales disponibles
- ADC1 (8 canales — GPIO 32 a 39):** Funciona siempre, incluso con el Wi-Fi activo.
- ADC2 (10 canales):** Se bloquea cuando el Wi-Fi está encendido (usar únicamente sin Wi-Fi).
+--------------------------------------------------------------------------------
 
-
-## 5. Manejo de Pantallas LCD en ESP32
+5. MANEJO DE PANTALLAS LCD EN ESP32
 
 Una LCD (Liquid Crystal Display) es una pantalla alfanumérica de bajo consumo y bajo costo. El cristal líquido no emite luz propia, sino que bloquea o deja pasar la luz de una retroiluminación LED. Permite visualizar texto, números y métricas procesadas en tiempo real sin depender de una computadora.
 
- Formatos comunes:
-   `16×2` $\rightarrow$ 32 caracteres (16 columnas $\times$ 2 filas).
-   `20×4` $\rightarrow$ 80 caracteres (20 columnas $\times$ 4 filas).
+Formatos comunes:
+- 16x2: 32 caracteres (16 columnas x 2 filas).
+- 20x4: 80 caracteres (20 columnas x 4 filas).
 
+Ejemplo de visualización en pantalla:
+Senal ADC: 2048
+V: 1.65 V
+
+Controlador HD44780 y el carácter 5x8:
+- DDRAM: Guarda el texto que se muestra actualmente en pantalla (80 bytes).
+- CGROM: Contiene los caracteres de fábrica (ASCII y otros símbolos).
+- CGRAM: Permite crear hasta 8 caracteres personalizados en matriz de 5 x 8 píxeles (muy útil en PDS para dibujar símbolos de grados, flechas o iconos).
+- Alimentación: Lógica a 5 V y contraste ajustable mediante potenciómetro.
+
+Los 16 pines del LCD:
+- Pin 1 (VSS) -> Conexión: GND -> Función: Tierra
+- Pin 2 (VDD) -> Conexión: +5 V -> Función: Alimentación de la lógica
+- Pin 3 (V0) -> Conexión: Potenciómetro -> Función: Ajuste de contraste
+- Pin 4 (RS) -> Conexión: GPIO -> Función: Selecciona comando o dato
+- Pin 5 (RW) -> Conexión: GND -> Función: Escritura (a tierra casi siempre)
+- Pin 6 (E) -> Conexión: GPIO -> Función: Habilita la escritura (Enable)
+- Pines 7–14 (D0–D7) -> Conexión: GPIO -> Función: Bus de datos (4 u 8 bits)
+- Pines 15 (A) / 16 (K) -> Conexión: +5 V / GND -> Función: Ánodo y cátodo del LED de fondo
+
+Modo paralelo de 4 bits: RS, E y D4–D7 ocupan 6 GPIO del ESP32.
+
+--------------------------------------------------------------------------------
+
+6. CONEXIÓN PARALELA VS. MÓDULO I2C
+
+Modo paralelo (4 / 8 bits):
+- Usa de 6 a 10 GPIO del ESP32 (8 bits = 10 GPIO; 4 bits = 6 GPIO).
+- Cableado complejo, requiere potenciómetro externo.
+- Escritura directa, sin conversor.
+
+Adaptador I2C (PCF8574):
+- Solo usa 2 pines de datos: SDA (GPIO 21) y SCL (GPIO 22).
+- Trimmer de contraste y jumper de luz incluidos.
+- Bus compartido con otros sensores I2C.
+
+Detalles del módulo adaptador I2C (PCF8574):
+- Chip PCF8574: Convierte los 2 hilos I2C en 8 salidas paralelas hacia el LCD.
+- Dirección I2C: 0x27 (PCF8574) o 0x3F (PCF8574A). Se verifica con un escáner I2C.
+- Trimmer de contraste: Gíralo con un destornillador pequeño hasta ver los caracteres.
+- Jumper de luz: Conectado = retroiluminación activa.
+
+--------------------------------------------------------------------------------
+
+7. PASOS PARA PONERLO EN MARCHA
+
+1. Instalar la librería: En Arduino IDE ir a Gestor de bibliotecas y buscar LiquidCrystal I2C (Frank de Brabander).
+2. Conectar los 4 cables: GND, VIN/5V, GPIO 21 (SDA) y GPIO 22 (SCL).
+3. Escanear la dirección: Cargar un escáner I2C y anotar la dirección (0x27 o 0x3F).
+4. Cargar el código: Subir el sketch y girar el trimmer de contraste si no se ve el texto.
+
+Funciones principales de LiquidCrystal_I2C:
+- LiquidCrystal_I2C lcd(0x27, 16, 2); -> Crea el objeto: dirección, columnas y filas.
+- lcd.init(); -> Inicializa la pantalla.
+- lcd.backlight(); -> Enciende la luz de fondo.
+- lcd.setCursor(col, fila); -> Mueve el cursor (empieza en 0).
+- lcd.print(valor); -> Escribe texto o números.
+- lcd.clear(); -> Borra toda la pantalla.
+
+--------------------------------------------------------------------------------
+
+8. PROYECTO INTEGRADOR Y SOLUCIÓN DE PROBLEMAS
+
+Monitor de señal:
+Flujo del sistema: Sensor (0–3.3 V) -> ADC (GPIO 34) -> Promedio móvil -> LCD I2C (0x27)
+
+Salida esperada en pantalla (potenciómetro a la mitad):
+Senal ADC: 2048
+V: 1.65 V
+
+Problemas comunes y cómo resolverlos:
+- Se ven cuadros negros: Ajusta el trimmer de contraste.
+- Pantalla en blanco: Prueba la dirección 0x3F o usa el escáner I2C.
+- Caracteres raros o nada: Revisa SDA/SCL, GND común y alimenta con 5 V.
+- Lecturas que saltan: Usa promedio móvil, un capacitor de 100 nF y ADC1 si hay Wi-Fi activo.
